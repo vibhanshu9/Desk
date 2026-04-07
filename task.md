@@ -1,0 +1,4 @@
+- [x] Update `useHost.js` to establish signaling on mount
+- [x] Update `HostDashboard.jsx` to reflect signaling status and button visibility
+- [ ] Update `useClient.js` for better connection reliability (Optional cleanup)
+- [x] Verify signaling routing in `server/src/index.js`

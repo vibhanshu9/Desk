@@ -11,6 +11,11 @@
 function getSignalUrl() {
   const envUrl = import.meta.env.VITE_SIGNAL_URL
   if (envUrl) return envUrl
+  
+  // Fallback to explicitly defined ngrok url just in case Vite hasn't restarted
+  const hardcodedNgrok = 'wss://59ca-122-164-126-153.ngrok-free.app/ws'
+  if (hardcodedNgrok) return hardcodedNgrok
+
   const { protocol, host } = window.location
   const wsProto = protocol === 'https:' ? 'wss:' : 'ws:'
   return `${wsProto}//${host}/ws`

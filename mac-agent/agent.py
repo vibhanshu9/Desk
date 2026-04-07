@@ -33,7 +33,7 @@ if env_file.exists():
             k, _, v = line.partition('=')
             os.environ.setdefault(k.strip(), v.strip())
 
-WS_URL    = os.environ.get('VITE_WS_URL', 'ws://localhost:4000')
+WS_URL    = os.environ.get('VITE_SIGNAL_URL', os.environ.get('VITE_WS_URL', 'ws://localhost:4000'))
 SESSION_ID = os.environ.get('MAC_SESSION_ID', None)  # override via env or CLI arg
 
 try:

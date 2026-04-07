@@ -13,9 +13,10 @@ function generateSessionId() {
 }
 
 const STATUS_CONFIG = {
-  idle:         { color: 'bg-gray-500',   label: 'Idle' },
-  sharing:      { color: 'bg-yellow-400', label: 'Waiting for client...' },
-  connected:    { color: 'bg-green-400',  label: 'Client connected' },
+  connecting:   { color: 'bg-yellow-400', label: 'Connecting signaling...' },
+  ready:        { color: 'bg-green-400',  label: 'Ready to share' },
+  sharing:      { color: 'bg-primary',    label: 'Waiting for client...' },
+  connected:    { color: 'bg-primary',    label: 'Client connected' },
   disconnected: { color: 'bg-red-400',    label: 'Disconnected' },
   error:        { color: 'bg-red-500',    label: 'Error' },
 }
@@ -26,7 +27,7 @@ export default function HostDashboard() {
   const [copied, setCopied] = useState(false)
   const localVideoRef = useRef(null)
 
-  const { status, clientCount, startSharing, initSignaling, stopSharing } = useHost(sessionId)
+  const { status, error, clientCount, pendingRequests, startSharing, stopSharing, acceptRequest, denyRequest } = useHost(sessionId)
 
   const handleStartSharing = useCallback(async () => {
     try {
@@ -34,9 +35,8 @@ export default function HostDashboard() {
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream
       }
-      initSignaling(stream)
     } catch {}
-  }, [startSharing, initSignaling])
+  }, [startSharing])
 
   const handleStop = useCallback(() => {
     stopSharing()
@@ -49,7 +49,7 @@ export default function HostDashboard() {
     setTimeout(() => setCopied(false), 2000)
   }, [sessionId])
 
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.idle
+  const cfg = STATUS_CONFIG[status] || { color: 'bg-gray-500', label: status || 'Idle' }
 
   return (
     <div className="min-h-screen bg-dark p-4">
@@ -68,12 +68,13 @@ export default function HostDashboard() {
             <div className="card">
               <h2 className="text-sm text-gray-400 mb-3 uppercase tracking-widest">Status</h2>
               <div className="flex items-center gap-2">
-                <span className={`status-dot ${cfg.color} animate-pulse`} />
+                <span className={`status-dot ${cfg.color} ${['connecting', 'sharing'].includes(status) ? 'animate-pulse' : ''}`} />
                 <span className="font-semibold">{cfg.label}</span>
               </div>
               {status === 'connected' && (
                 <p className="text-green-400 text-sm mt-1">{clientCount} client(s) connected</p>
               )}
+              {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
             </div>
 
             {/* Session ID */}
@@ -94,16 +95,43 @@ export default function HostDashboard() {
             {/* Controls */}
             <div className="card">
               <h2 className="text-sm text-gray-400 mb-3 uppercase tracking-widest">Controls</h2>
-              {status === 'idle' ? (
-                <button onClick={handleStartSharing} className="btn-primary w-full">
-                  Start Sharing
+              
+              {status === 'connecting' && (
+                <button disabled className="btn-primary w-full opacity-50 cursor-not-allowed">
+                  Connecting...
                 </button>
-              ) : (
+              )}
+
+              {/* Remove Start Sharing button, we wait for incoming requests */}
+
+              {['sharing', 'connected'].includes(status) && (
                 <button onClick={handleStop} className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-6 rounded-xl w-full transition-all">
                   Stop Sharing
                 </button>
               )}
+
+              {['disconnected', 'error'].includes(status) && (
+                <button onClick={() => window.location.reload()} className="btn-secondary w-full">
+                  Retry Connection
+                </button>
+              )}
             </div>
+
+            {/* Pending Requests */}
+            {pendingRequests.length > 0 && (
+              <div className="card border-2 border-primary animate-in fade-in slide-in-from-top-2">
+                <h2 className="text-sm text-primary font-bold mb-3 uppercase tracking-widest">Connection Request</h2>
+                <p className="text-gray-300 text-sm mb-4">A client wants to connect to your screen.</p>
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => acceptRequest(pendingRequests[0])} className="btn-primary w-full">Give Full Access</button>
+                  <button onClick={() => denyRequest(pendingRequests[0])} className="btn-secondary w-full">Deny</button>
+                </div>
+                {pendingRequests.length > 1 && (
+                  <p className="text-xs text-gray-400 mt-2 text-center">+{pendingRequests.length - 1} more waiting</p>
+                )}
+              </div>
+            )}
+
 
             {/* Info */}
             <div className="card text-sm text-gray-400 space-y-2">
@@ -125,10 +153,16 @@ export default function HostDashboard() {
                   playsInline
                   className="w-full h-full object-contain"
                 />
-                {status === 'idle' && (
+                {['idle', 'ready'].includes(status) && pendingRequests.length === 0 && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
                     <div className="text-5xl mb-3">🖥️</div>
-                    <p>Click "Start Sharing" to begin</p>
+                    <p>Share your Session ID for the client to connect</p>
+                  </div>
+                )}
+                {pendingRequests.length > 0 && ['idle', 'ready'].includes(status) && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-primary bg-black/60 backdrop-blur-sm z-10">
+                    <div className="text-5xl mb-3 animate-bounce">🔔</div>
+                    <p className="font-semibold text-lg">Connection Request Pending...</p>
                   </div>
                 )}
               </div>

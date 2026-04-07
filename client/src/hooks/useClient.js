@@ -236,6 +236,10 @@ export function useClient(videoRef) {
             setStatus('error')
             setError('Session not found. Make sure the host is sharing.')
             break
+          case 'host-rejected':
+            setStatus('error')
+            setError('Host denied your connection request.')
+            break
           case 'host-disconnected':
             setStatus('disconnected')
             break
