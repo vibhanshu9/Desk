@@ -1,0 +1,8 @@
+{
+  "startupCommands": [
+    "cd /home/user/app/server && npm install; node src/index.js",
+    "cd /home/user/app/client && npm install; npm run dev"
+  ],
+  "projectId": "50bfb9c5-bafd-41b9-9c93-a61d4264dc0d",
+  "templateId": "any"
+}
